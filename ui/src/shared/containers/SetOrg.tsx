@@ -19,7 +19,7 @@ import TelegrafsPage from 'src/telegrafs/containers/TelegrafsPage'
 import ScrapersIndex from 'src/scrapers/containers/ScrapersIndex'
 import ClientLibrariesPage from 'src/clientLibraries/containers/ClientLibrariesPage'
 import VariablesIndex from 'src/variables/containers/VariablesIndex'
-import TemplatesIndex from 'src/templates/containers/TemplatesIndex'
+import {CommunityTemplatesIndex} from 'src/templates/containers/CommunityTemplatesIndex'
 import LabelsIndex from 'src/labels/containers/LabelsIndex'
 import OrgProfilePage from 'src/organizations/containers/OrgProfilePage'
 import AlertingIndex from 'src/alerting/components/AlertingIndex'
@@ -154,10 +154,14 @@ const SetOrg: FC<Props> = ({
           path={`${orgPath}/settings/variables`}
           component={VariablesIndex}
         />
-        <Route
-          path={`${orgPath}/settings/templates`}
-          component={TemplatesIndex}
-        />
+
+        {isFlagEnabled('communityTemplates') && (
+          <Route
+            path={`${orgPath}/settings/templates`}
+            component={CommunityTemplatesIndex}
+          />
+        )}
+
         <Route
           exact
           path={`${orgPath}/settings/labels`}

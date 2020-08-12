@@ -30,7 +30,7 @@ describe('Dashboards', () => {
         })
         cy.getByTestID('add-resource-button').should($b => {
           expect($b).to.have.length(1)
-          expect($b).to.contain('Create Dashboard')
+          expect($b).to.contain('Create New Dashboard')
         })
       })
     })
@@ -68,11 +68,6 @@ describe('Dashboards', () => {
 
     cy.getByTestID('dashboard-card').should('contain', newName)
 
-    // Open Export overlay
-    cy.getByTestID('context-menu-item-export').click({force: true})
-    cy.getByTestID('export-overlay--text-area').should('exist')
-    cy.get('.cf-overlay--dismiss').click()
-
     // Create from header
     cy.getByTestID('add-resource-button').click()
 
@@ -83,14 +78,6 @@ describe('Dashboards', () => {
     })
 
     // Delete dashboards
-    cy.getByTestID('dashboard-card')
-      .first()
-      .trigger('mouseover')
-      .within(() => {
-        cy.getByTestID('context-delete-menu').click()
-        cy.getByTestID('context-delete-dashboard').click()
-      })
-
     cy.getByTestID('dashboard-card')
       .first()
       .trigger('mouseover')

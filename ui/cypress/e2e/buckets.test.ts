@@ -22,7 +22,7 @@ describe('Buckets', () => {
       const newBucket = '🅱️ucket'
       cy.getByTestID(`bucket--card--name ${newBucket}`).should('not.exist')
 
-      cy.getByTestID('Create Bucket').click()
+      cy.getByTestID('Create New Bucket').click()
       cy.getByTestID('overlay--container').within(() => {
         cy.getByInputName('name').type(newBucket)
         cy.get('.cf-button')

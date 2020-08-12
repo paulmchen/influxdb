@@ -40,7 +40,7 @@ describe('labels', () => {
 
     cy.getByTestID('overlay--container').within(() => {
       cy.getByTestID('overlay--header')
-        .contains('Create New Label')
+        .contains('Create Label')
         .should('be.visible')
       // dismiss
       cy.getByTestID('overlay--header')

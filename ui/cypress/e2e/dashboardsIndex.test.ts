@@ -30,7 +30,7 @@ describe('Dashboards', () => {
         })
         cy.getByTestID('add-resource-button').should($b => {
           expect($b).to.have.length(1)
-          expect($b).to.contain('Create New Dashboard')
+          expect($b).to.contain('Create Dashboard')
         })
       })
     })

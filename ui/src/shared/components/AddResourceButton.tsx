@@ -53,7 +53,7 @@ const AddResourceButton: FC<Props & ReduxProps> = ({
       onClick={onClick}
       color={ComponentColor.Primary}
       size={ComponentSize.Small}
-      text={`Create New ${resourceName}`}
+      text={`Create ${resourceName}`}
       icon={IconFont.Plus}
       status={status}
     />

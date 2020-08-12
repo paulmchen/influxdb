@@ -11,13 +11,13 @@ export const SET_STACKS = 'SET_STACKS'
 export const DELETE_STACKS = 'DELETE_STACKS'
 
 export type Action =
-  | ReturnType<typeof setCommunityTemplateToInstall>
+  | ReturnType<typeof setStagedCommunityTemplate>
   | ReturnType<typeof toggleTemplateResourceInstall>
   | ReturnType<typeof setStacks>
   | ReturnType<typeof removeStack>
 
 // Action Creators
-export const setCommunityTemplateToInstall = (template: CommunityTemplate) =>
+export const setStagedCommunityTemplate = (template: CommunityTemplate) =>
   ({
     type: SET_COMMUNITY_TEMPLATE_TO_INSTALL,
     template,

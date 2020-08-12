@@ -1,12 +1,12 @@
 const influxPage = require(__srcdir + '/pages/influxPage.js');
 const { By } = require('selenium-webdriver');
 
-const createDashboardDropdown = '[data-testid=add-resource-dropdown--button]';
+const createDashboardDropdown = '[data-testid=add-resource-button]';
 const filterDashboards =  '[data-testid=search-widget]';
 const sortTypeButton = '[data-testid=resource-sorter--button]:nth-of-type(1)';
 const sortTypeItem = '[data-testid=\'resource-sorter--%ITEM%\']';
 const modifiedSortButton = '[data-testid=resource-list--sorter]:nth-of-type(2)';
-const createDashboardDropdownEmpty = '[data-testid=\'page-contents\'] [data-testid=\'add-resource-dropdown--button\']';
+const createDashboardDropdownEmpty = '[data-testid=\'page-contents\'] [data-testid=\'add-resource-button\']';
 const createDashboardItems = '[data-testid^=add-resource-dropdown--][id]';
 const dashboardCardByName = '//*[@data-testid=\'dashboard-card\'][.//span[text() = \'%NAME%\']]';
 const dashboardCardExportButton = '//*[@data-testid=\'dashboard-card\'][.//span[text() = \'%NAME%\']]//*[@class=\'context-menu--container\'][.//*[text() = \'Export\']]';
@@ -38,12 +38,10 @@ const addLabelsPopoverNewItem = '[data-testid^=\'inline-labels--create-new\']';
 
 const importPopupUploadFileRadio = '[data-testid=overlay--body] [data-testid=select-group--option][title=\'Upload\']';
 const importPopupPasteJSONRadio = '[data-testid=overlay--body] [data-testid=select-group--option][title=\'Paste\']';
-const importPopupImportJSONButton = '[data-testid=\'overlay--footer\'] [title^=\'Import JSON\']';
 const importPopupDismiss = '[data-testid=\'overlay--header\'] button';
 const importPopupFileInput = '[data-testid=\'overlay--body\'] [class*=\'drag-and-drop--form\'] ';
 const importPopupFileInputHeader = '[data-testid=\'overlay--body\'] [class*=\'drag-and-drop--header\']';
 const importPopupDragNDropFile = 'input[type=file]'; //N.B. has display:none
-const importPopupJSONTextarea = '[data-testid=\'overlay--body\'] [data-testid=\'import-overlay--textarea\']';
 
 const fromTemplatePopupDismiss = '[data-testid=\'overlay--header\'] button';
 const fromTemplatePopupCancel = '[data-testid=\'overlay--footer\'] [data-testid=\'button\'][title=\'Cancel\']';
@@ -71,7 +69,7 @@ class dashboardsPage extends influxPage {
         await super.isLoaded([{type: 'css', selector: createDashboardDropdown},
             {type: 'css', selector: filterDashboards} ,
             {type: 'css', selector: sortTypeButton}
-           // {type: 'css', selector: modifiedSortButton}
+                      'css', selector: modifiedSortButton}
         ], urlCtx);
     }
 
@@ -91,11 +89,11 @@ class dashboardsPage extends influxPage {
         return await this.driver.findElement(By.css(sortTypeItem.replace('%ITEM%', item)));
     }
 
-//    async getModifiedSortButton(){
-//        return await this.driver.findElement(By.css(modifiedSortButton));
+//    asyn    c getModifiedSortButton(){
+//            return await this.driver.findElement(By.css(modifiedSortButton));
 //    }
 
-    async getCreateDashboardItem(item){
+        async getCreateDashboardItem(item){
         return await this.driver.findElement(By.css(`[data-testid^=add-resource-dropdown--][id='${item}']`));
     }
 

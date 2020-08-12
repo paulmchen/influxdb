@@ -49,7 +49,7 @@ const AddResourceButton: FC<Props & ReduxProps> = ({
   return (
     <Button
       style={{width: '190px'}}
-      testID="add-resource-dropdown--button"
+      testID="add-resource-button"
       onClick={onClick}
       color={ComponentColor.Primary}
       size={ComponentSize.Small}

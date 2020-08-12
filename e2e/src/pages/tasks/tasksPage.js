@@ -4,13 +4,13 @@ const { By } = require('selenium-webdriver');
 
 const filterTasks = '[data-testid=search-widget]';
 const inactiveToggle = '[data-testid=slide-toggle]';
-const createTaskDropdownHeader = '[data-testid=page-control-bar--right] [data-testid=add-resource-dropdown--button]';
+const createTaskDropdownHeader = '[data-testid=page-control-bar--right] [data-testid=add-resource-button]';
 const nameSortButton = '[data-testid=resource-list--sorter]:nth-of-type(1)';
 const activeSortButton = '[data-testid=resource-list--sorter]:nth-of-type(2)';
 const scheduleSortButton = '[data-testid=resource-list--sorter]:nth-of-type(3)';
 const lastCompletedSortButton = '[data-testid=resource-list--sorter]:nth-of-type(4)';
 // following is only present until first task is created, so not good candidate for isLoaded check
-const createTaskDropdownBody = '[data-testid=resource-list--body] [data-testid=add-resource-dropdown--button]';
+const createTaskDropdownBody = '[data-testid=resource-list--body] [data-testid=add-resource-button]';
 
 const taskCardByName = '//*[@data-testid=\'task-card\'][.//span[text() = \'%NAME%\']]';
 
@@ -27,7 +27,7 @@ class tasksPage extends influxPage{
         await super.isLoaded([{type: 'css', selector: filterTasks},
             {type: 'css', selector: inactiveToggle} ,
             {type: 'css', selector: createTaskDropdownHeader} ,
-           // {type: 'css', selector: nameSortButton},
+                      'css', selector: nameSortButton},
             basePage.getSortTypeButtonSelector(),
             //{type: 'css', selector: activeSortButton},
             //{type: 'css', selector: scheduleSortButton},

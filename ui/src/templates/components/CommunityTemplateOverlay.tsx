@@ -6,7 +6,7 @@ import {withRouter, RouteComponentProps} from 'react-router-dom'
 import {Alignment, Orientation, Overlay, Tabs} from '@influxdata/clockface'
 import {CommunityTemplateInstallInstructions} from 'src/templates/components/CommunityTemplateInstallInstructions'
 import {CommunityTemplateReadme} from 'src/templates/components/CommunityTemplateReadme'
-import {CommunityTemplateOverlayContents} from 'src/templates/components/CommunityTemplateOverlayContents'
+import {CommunityTemplateResourceContent} from 'src/templates/components/CommunityTemplateResourceContent'
 
 // Types
 import {ComponentStatus} from '@influxdata/clockface'
@@ -18,6 +18,7 @@ interface OwnProps {
   resourceCount: number
   status?: ComponentStatus
   templateName: string
+  templateDirectory: string
   updateStatus?: (status: ComponentStatus) => void
 }
 
@@ -44,7 +45,13 @@ class CommunityTemplateOverlayUnconnected extends PureComponent<Props, State> {
   }
 
   public render() {
-    const {isVisible, onInstall, resourceCount, templateName} = this.props
+    const {
+      isVisible,
+      onInstall,
+      resourceCount,
+      templateName,
+      templateDirectory,
+    } = this.props
 
     return (
       <Overlay visible={isVisible}>
@@ -71,13 +78,14 @@ class CommunityTemplateOverlayUnconnected extends PureComponent<Props, State> {
                   active={this.state.activeTab === Tab.Readme}
                   id="readme"
                   text="Readme"
+                  testID="community-templates-readme-tab"
                   onClick={this.setTabToReadme}
                 />
               </Tabs.Tabs>
               {this.state.activeTab === Tab.IncludedResources ? (
-                <CommunityTemplateOverlayContents />
+                <CommunityTemplateResourceContent />
               ) : (
-                <CommunityTemplateReadme />
+                <CommunityTemplateReadme directory={templateDirectory} />
               )}
             </Tabs.Container>
           </Overlay.Body>

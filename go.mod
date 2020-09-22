@@ -3,7 +3,6 @@ module github.com/influxdata/influxdb/v2
 go 1.13
 
 require (
-	cloud.google.com/go/bigtable v1.3.0 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/RoaringBitmap/roaring v0.4.16
@@ -21,6 +20,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/go-bitstream v0.0.0-20180413035011-3522498ce2c8
 	github.com/docker/docker v1.13.1 // indirect
+	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig-checker/editorconfig-checker v0.0.0-20190819115812-1474bdeaf2a2
 	github.com/elazarl/go-bindata-assetfs v1.0.0
 	github.com/fatih/color v1.9.0
@@ -47,7 +47,7 @@ require (
 	github.com/hashicorp/vault/api v1.0.2
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/cron v0.0.0-20191203200038-ded12750aac6
-	github.com/influxdata/flux v0.80.0
+	github.com/influxdata/flux v0.83.1
 	github.com/influxdata/httprouter v1.3.1-0.20191122104820-ee83e2772f69
 	github.com/influxdata/influxql v0.0.0-20180925231337-1cbfca8e56b6
 	github.com/influxdata/pkg-config v0.2.3
@@ -86,25 +86,26 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/tcnksm/go-input v0.0.0-20180404061846-548a7d7a8ee8
 	github.com/testcontainers/testcontainers-go v0.0.0-20190108154635-47c0da630f72
-	github.com/tinylib/msgp v1.1.0 // indirect
+	github.com/tinylib/msgp v1.1.0
 	github.com/tylerb/graceful v1.2.15
 	github.com/uber-go/atomic v1.3.2 // indirect
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	github.com/willf/bitset v1.1.9 // indirect
+	github.com/xlab/treeprint v1.0.0
 	github.com/yudai/gojsondiff v1.0.0
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	go.uber.org/multierr v1.5.0
 	go.uber.org/zap v1.14.1
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20200212091648-12a6c2dcc1e4
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	golang.org/x/tools v0.0.0-20200304024140-c4206d458c3f
+	golang.org/x/tools v0.0.0-20200721032237-77f530d86f9a
 	google.golang.org/api v0.17.0
 	google.golang.org/grpc v1.27.1
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
@@ -115,7 +116,3 @@ require (
 	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
 	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 )
-
-replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.2.0
-
-replace github.com/influxdata/platform => /dev/null

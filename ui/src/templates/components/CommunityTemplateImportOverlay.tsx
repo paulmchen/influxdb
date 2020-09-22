@@ -18,7 +18,7 @@ import {ComponentStatus} from '@influxdata/clockface'
 
 // Utils
 import {getByID} from 'src/resources/selectors'
-import {getGithubUrlFromTemplateDetails} from 'src/templates/utils'
+import {getTemplateNameFromUrl} from 'src/templates/utils'
 import {reportError} from 'src/shared/utils/errors'
 
 import {
@@ -41,11 +41,9 @@ interface State {
 
 type ReduxProps = ConnectedProps<typeof connector>
 type RouterProps = RouteComponentProps<{
-  directory: string
   orgID: string
-  templateName: string
-  templateExtension: string
 }>
+
 type Props = ReduxProps & RouterProps
 
 class UnconnectedTemplateImportOverlay extends PureComponent<Props> {
@@ -54,42 +52,40 @@ class UnconnectedTemplateImportOverlay extends PureComponent<Props> {
   }
 
   public componentDidMount() {
-    const {directory, org, templateExtension, templateName} = this.props
+    if (!this.props.stagedTemplateUrl) {
+      this.onDismiss()
+      return
+    }
     this.reviewTemplateResources(
-      org.id,
-      directory,
-      templateName,
-      templateExtension
+      this.props.org.id,
+      this.props.stagedTemplateUrl
     )
   }
 
   public render() {
+    const templateDetails = getTemplateNameFromUrl(this.props.stagedTemplateUrl)
+    const templateName = templateDetails.name
+    const templateDirectory = templateDetails.directory
+
     return (
       <CommunityTemplateOverlay
         onDismissOverlay={this.onDismiss}
         onInstall={this.handleInstallTemplate}
         resourceCount={this.props.resourceCount}
         status={this.state.status}
-        templateName={this.props.templateName}
+        templateName={templateName}
+        templateDirectory={templateDirectory}
         updateStatus={this.updateOverlayStatus}
       />
     )
   }
 
   private reviewTemplateResources = async (
-    orgID,
-    directory,
-    templateName,
-    templateExtension
+    orgID: string,
+    templateUrl: string
   ) => {
-    const yamlLocation = getGithubUrlFromTemplateDetails(
-      directory,
-      templateName,
-      templateExtension
-    )
-
     try {
-      const summary = await reviewTemplate(orgID, yamlLocation)
+      const summary = await reviewTemplate(orgID, templateUrl)
 
       this.props.setStagedCommunityTemplate(summary)
       return summary
@@ -102,29 +98,20 @@ class UnconnectedTemplateImportOverlay extends PureComponent<Props> {
   }
 
   private onDismiss = () => {
-    const {history} = this.props
-
-    history.goBack()
+    this.props.history.push(`/orgs/${this.props.org.id}/settings/templates`)
   }
 
   private updateOverlayStatus = (status: ComponentStatus) =>
     this.setState(() => ({status}))
 
   private handleInstallTemplate = async () => {
-    const {directory, org, templateExtension, templateName} = this.props
-
-    const yamlLocation = getGithubUrlFromTemplateDetails(
-      directory,
-      templateName,
-      templateExtension
-    )
-
     let summary
     try {
       summary = await installTemplate(
-        org.id,
-        yamlLocation,
-        this.props.resourcesToSkip
+        this.props.org.id,
+        this.props.stagedTemplateUrl,
+        this.props.resourcesToSkip,
+        this.props.stagedTemplateEnvReferences
       )
     } catch (err) {
       this.props.notify(communityTemplateInstallFailed(err.message))
@@ -132,16 +119,19 @@ class UnconnectedTemplateImportOverlay extends PureComponent<Props> {
     }
 
     try {
-      await updateStackName(summary.stackID, templateName)
+      const templateDetails = getTemplateNameFromUrl(
+        this.props.stagedTemplateUrl
+      )
+      await updateStackName(summary.stackID, templateDetails.name)
 
-      event('template_install', {templateName: templateName})
+      event('template_install', {templateName: templateDetails.name})
 
-      this.props.notify(communityTemplateInstallSucceeded(templateName))
+      this.props.notify(communityTemplateInstallSucceeded(templateDetails.name))
     } catch (err) {
       this.props.notify(communityTemplateRenameFailed())
       reportError(err, {name: 'The community template rename failed'})
     } finally {
-      this.props.fetchAndSetStacks(org.id)
+      this.props.fetchAndSetStacks(this.props.org.id)
       this.onDismiss()
     }
   }
@@ -154,17 +144,43 @@ const mstp = (state: AppState, props: RouterProps) => {
     props.match.params.orgID
   )
 
+  // convert the env references into a format pkger is happy with
+  const stagedTemplateEnvReferences = {}
+  for (const [refKey, refObject] of Object.entries(
+    state.resources.templates.stagedTemplateEnvReferences
+  )) {
+    switch (refObject.valueType) {
+      case 'string':
+      case 'time':
+      case 'duration': {
+        stagedTemplateEnvReferences[refKey] = refObject.value
+        continue
+      }
+      case 'number':
+      case 'float': {
+        stagedTemplateEnvReferences[refKey] = parseFloat(refObject.value as any)
+        continue
+      }
+      case 'integer': {
+        stagedTemplateEnvReferences[refKey] = parseInt(
+          refObject.value as any,
+          10
+        )
+        continue
+      }
+    }
+  }
+
   return {
     org,
-    directory: props.match.params.directory,
-    templateName: props.match.params.templateName,
-    templateExtension: props.match.params.templateExtension,
+    stagedTemplateEnvReferences,
     flags: state.flags.original,
     resourceCount: getTotalResourceCount(
       state.resources.templates.stagedCommunityTemplate.summary
     ),
     resourcesToSkip:
       state.resources.templates.stagedCommunityTemplate.resourcesToSkip,
+    stagedTemplateUrl: state.resources.templates.stagedTemplateUrl,
   }
 }
 

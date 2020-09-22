@@ -15,10 +15,14 @@ import (
 
 	"github.com/influxdata/httprouter"
 	"github.com/influxdata/influxdb/v2"
+	"github.com/influxdata/influxdb/v2/authorization"
 	pcontext "github.com/influxdata/influxdb/v2/context"
 	kithttp "github.com/influxdata/influxdb/v2/kit/transport/http"
+	"github.com/influxdata/influxdb/v2/kv"
+	"github.com/influxdata/influxdb/v2/label"
 	"github.com/influxdata/influxdb/v2/mock"
 	_ "github.com/influxdata/influxdb/v2/query/builtin"
+	"github.com/influxdata/influxdb/v2/tenant"
 	influxdbtesting "github.com/influxdata/influxdb/v2/testing"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -86,21 +90,19 @@ func TestTaskHandler_handleGetTasks(t *testing.T) {
 					FindTasksFn: func(ctx context.Context, f influxdb.TaskFilter) ([]*influxdb.Task, int, error) {
 						tasks := []*influxdb.Task{
 							{
-								ID:              1,
-								Name:            "task1",
-								Description:     "A little Task",
-								OrganizationID:  1,
-								OwnerID:         1,
-								Organization:    "test",
-								AuthorizationID: 0x100,
+								ID:             1,
+								Name:           "task1",
+								Description:    "A little Task",
+								OrganizationID: 1,
+								OwnerID:        1,
+								Organization:   "test",
 							},
 							{
-								ID:              2,
-								Name:            "task2",
-								OrganizationID:  2,
-								OwnerID:         2,
-								Organization:    "test",
-								AuthorizationID: 0x200,
+								ID:             2,
+								Name:           "task2",
+								OrganizationID: 2,
+								OwnerID:        2,
+								Organization:   "test",
 							},
 						}
 						return tasks, len(tasks), nil
@@ -195,12 +197,11 @@ func TestTaskHandler_handleGetTasks(t *testing.T) {
 					FindTasksFn: func(ctx context.Context, f influxdb.TaskFilter) ([]*influxdb.Task, int, error) {
 						tasks := []*influxdb.Task{
 							{
-								ID:              2,
-								Name:            "task2",
-								OrganizationID:  2,
-								OwnerID:         2,
-								Organization:    "test",
-								AuthorizationID: 0x200,
+								ID:             2,
+								Name:           "task2",
+								OrganizationID: 2,
+								OwnerID:        2,
+								Organization:   "test",
 							},
 						}
 						return tasks, len(tasks), nil
@@ -269,12 +270,11 @@ func TestTaskHandler_handleGetTasks(t *testing.T) {
 					FindTasksFn: func(ctx context.Context, f influxdb.TaskFilter) ([]*influxdb.Task, int, error) {
 						tasks := []*influxdb.Task{
 							{
-								ID:              2,
-								Name:            "task2",
-								OrganizationID:  2,
-								OwnerID:         2,
-								Organization:    "test2",
-								AuthorizationID: 0x200,
+								ID:             2,
+								Name:           "task2",
+								OrganizationID: 2,
+								OwnerID:        2,
+								Organization:   "test2",
 							},
 						}
 						return tasks, len(tasks), nil
@@ -342,20 +342,18 @@ func TestTaskHandler_handleGetTasks(t *testing.T) {
 					FindTasksFn: func(ctx context.Context, f influxdb.TaskFilter) ([]*influxdb.Task, int, error) {
 						tasks := []*influxdb.Task{
 							{
-								ID:              1,
-								Name:            "task1",
-								OrganizationID:  1,
-								OwnerID:         1,
-								Organization:    "test2",
-								AuthorizationID: 0x100,
+								ID:             1,
+								Name:           "task1",
+								OrganizationID: 1,
+								OwnerID:        1,
+								Organization:   "test2",
 							},
 							{
-								ID:              2,
-								Name:            "task2",
-								OrganizationID:  2,
-								OwnerID:         2,
-								Organization:    "test2",
-								AuthorizationID: 0x200,
+								ID:             2,
+								Name:           "task2",
+								OrganizationID: 2,
+								OwnerID:        2,
+								Organization:   "test2",
 							},
 						}
 						return tasks, len(tasks), nil
@@ -1181,7 +1179,7 @@ func TestService_handlePostTaskLabel(t *testing.T) {
 				t.Fatalf("failed to unmarshal label mapping: %v", err)
 			}
 
-			url := fmt.Sprintf("http://localhost:9999/api/v2/tasks/%s/labels", tt.args.taskID)
+			url := fmt.Sprintf("http://localhost:8086/api/v2/tasks/%s/labels", tt.args.taskID)
 			r := httptest.NewRequest("POST", url, bytes.NewReader(b))
 			w := httptest.NewRecorder()
 
@@ -1211,59 +1209,64 @@ func TestService_handlePostTaskLabel(t *testing.T) {
 // Test that org name to org ID translation happens properly in the HTTP layer.
 // Regression test for https://github.com/influxdata/influxdb/issues/12089.
 func TestTaskHandler_CreateTaskWithOrgName(t *testing.T) {
-	i := newInMemKVSVC(t)
+	i := NewTestInmemStore(t)
+
+	ts := tenant.NewService(tenant.NewStore(i))
+	aStore, _ := authorization.NewStore(i)
+	as := authorization.NewService(aStore, ts)
 	ctx := context.Background()
 
 	// Set up user and org.
 	u := &influxdb.User{Name: "u"}
-	if err := i.CreateUser(ctx, u); err != nil {
+	if err := ts.CreateUser(ctx, u); err != nil {
 		t.Fatal(err)
 	}
 	o := &influxdb.Organization{Name: "o"}
-	if err := i.CreateOrganization(ctx, o); err != nil {
+	if err := ts.CreateOrganization(ctx, o); err != nil {
 		t.Fatal(err)
 	}
 
 	// Source and destination buckets for use in task.
 	bSrc := influxdb.Bucket{OrgID: o.ID, Name: "b-src"}
-	if err := i.CreateBucket(ctx, &bSrc); err != nil {
+	if err := ts.CreateBucket(ctx, &bSrc); err != nil {
 		t.Fatal(err)
 	}
 	bDst := influxdb.Bucket{OrgID: o.ID, Name: "b-dst"}
-	if err := i.CreateBucket(ctx, &bDst); err != nil {
+	if err := ts.CreateBucket(ctx, &bDst); err != nil {
 		t.Fatal(err)
 	}
 
 	authz := influxdb.Authorization{OrgID: o.ID, UserID: u.ID, Permissions: influxdb.OperPermissions()}
-	if err := i.CreateAuthorization(ctx, &authz); err != nil {
+	if err := as.CreateAuthorization(ctx, &authz); err != nil {
 		t.Fatal(err)
 	}
 
-	ts := &mock.TaskService{
+	taskSvc := &mock.TaskService{
 		CreateTaskFn: func(_ context.Context, tc influxdb.TaskCreate) (*influxdb.Task, error) {
 			if tc.OrganizationID != o.ID {
 				t.Fatalf("expected task to be created with org ID %s, got %s", o.ID, tc.OrganizationID)
 			}
 
-			return &influxdb.Task{ID: 9, OrganizationID: o.ID, OwnerID: o.ID, AuthorizationID: authz.ID, Name: "x", Flux: tc.Flux}, nil
+			return &influxdb.Task{ID: 9, OrganizationID: o.ID, OwnerID: o.ID, Name: "x", Flux: tc.Flux}, nil
 		},
 	}
 
+	lStore, _ := label.NewStore(i)
 	h := NewTaskHandler(zaptest.NewLogger(t), &TaskBackend{
 		log: zaptest.NewLogger(t),
 
-		TaskService:                ts,
-		AuthorizationService:       i,
-		OrganizationService:        i,
-		UserResourceMappingService: i,
-		LabelService:               i,
-		UserService:                i,
-		BucketService:              i,
+		TaskService:                taskSvc,
+		AuthorizationService:       as,
+		OrganizationService:        ts,
+		UserResourceMappingService: ts,
+		LabelService:               label.NewService(lStore),
+		UserService:                ts,
+		BucketService:              ts,
 	})
 
 	const script = `option task = {name:"x", every:1m} from(bucket:"b-src") |> range(start:-1m) |> to(bucket:"b-dst", org:"o")`
 
-	url := "http://localhost:9999/api/v2/tasks"
+	url := "http://localhost:8086/api/v2/tasks"
 
 	b, err := json.Marshal(influxdb.TaskCreate{
 		Flux:         script,
@@ -1304,22 +1307,26 @@ func TestTaskHandler_CreateTaskWithOrgName(t *testing.T) {
 func TestTaskHandler_Sessions(t *testing.T) {
 	t.Skip("rework these")
 	// Common setup to get a working base for using tasks.
-	i := newInMemKVSVC(t)
+	st := NewTestInmemStore(t)
+	i := kv.NewService(zaptest.NewLogger(t), st)
+
+	tStore := tenant.NewStore(st)
+	tSvc := tenant.NewService(tStore)
 
 	ctx := context.Background()
 
 	// Set up user and org.
 	u := &influxdb.User{Name: "u"}
-	if err := i.CreateUser(ctx, u); err != nil {
+	if err := tSvc.CreateUser(ctx, u); err != nil {
 		t.Fatal(err)
 	}
 	o := &influxdb.Organization{Name: "o"}
-	if err := i.CreateOrganization(ctx, o); err != nil {
+	if err := tSvc.CreateOrganization(ctx, o); err != nil {
 		t.Fatal(err)
 	}
 
 	// Map user to org.
-	if err := i.CreateUserResourceMapping(ctx, &influxdb.UserResourceMapping{
+	if err := tSvc.CreateUserResourceMapping(ctx, &influxdb.UserResourceMapping{
 		ResourceType: influxdb.OrgsResourceType,
 		ResourceID:   o.ID,
 		UserID:       u.ID,
@@ -1330,11 +1337,11 @@ func TestTaskHandler_Sessions(t *testing.T) {
 
 	// Source and destination buckets for use in task.
 	bSrc := influxdb.Bucket{OrgID: o.ID, Name: "b-src"}
-	if err := i.CreateBucket(ctx, &bSrc); err != nil {
+	if err := tSvc.CreateBucket(ctx, &bSrc); err != nil {
 		t.Fatal(err)
 	}
 	bDst := influxdb.Bucket{OrgID: o.ID, Name: "b-dst"}
-	if err := i.CreateBucket(ctx, &bDst); err != nil {
+	if err := tSvc.CreateBucket(ctx, &bDst); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1351,11 +1358,11 @@ func TestTaskHandler_Sessions(t *testing.T) {
 
 			TaskService:                ts,
 			AuthorizationService:       i,
-			OrganizationService:        i,
-			UserResourceMappingService: i,
+			OrganizationService:        tSvc,
+			UserResourceMappingService: tSvc,
 			LabelService:               i,
-			UserService:                i,
-			BucketService:              i,
+			UserService:                tSvc,
+			BucketService:              tSvc,
 		})
 	}
 
@@ -1388,15 +1395,14 @@ func TestTaskHandler_Sessions(t *testing.T) {
 				}
 
 				return &influxdb.Task{
-					ID:              taskID,
-					OrganizationID:  o.ID,
-					AuthorizationID: taskAuth.ID,
+					ID:             taskID,
+					OrganizationID: o.ID,
 				}, nil
 			},
 		}
 
 		h := newHandler(t, ts)
-		url := fmt.Sprintf("http://localhost:9999/api/v2/tasks/%s/runs", taskID)
+		url := fmt.Sprintf("http://localhost:8086/api/v2/tasks/%s/runs", taskID)
 		valCtx := context.WithValue(sessionAllPermsCtx, httprouter.ParamsKey, httprouter.Params{{Key: "id", Value: taskID.String()}})
 		r := httptest.NewRequest("GET", url, nil).WithContext(valCtx)
 		w := httptest.NewRecorder()
@@ -1482,15 +1488,14 @@ func TestTaskHandler_Sessions(t *testing.T) {
 				}
 
 				return &influxdb.Task{
-					ID:              taskID,
-					OrganizationID:  o.ID,
-					AuthorizationID: taskAuth.ID,
+					ID:             taskID,
+					OrganizationID: o.ID,
 				}, nil
 			},
 		}
 
 		h := newHandler(t, ts)
-		url := fmt.Sprintf("http://localhost:9999/api/v2/tasks/%s/runs/%s", taskID, runID)
+		url := fmt.Sprintf("http://localhost:8086/api/v2/tasks/%s/runs/%s", taskID, runID)
 		valCtx := context.WithValue(sessionAllPermsCtx, httprouter.ParamsKey, httprouter.Params{
 			{Key: "id", Value: taskID.String()},
 			{Key: "rid", Value: runID.String()},
@@ -1578,15 +1583,14 @@ func TestTaskHandler_Sessions(t *testing.T) {
 				}
 
 				return &influxdb.Task{
-					ID:              taskID,
-					OrganizationID:  o.ID,
-					AuthorizationID: taskAuth.ID,
+					ID:             taskID,
+					OrganizationID: o.ID,
 				}, nil
 			},
 		}
 
 		h := newHandler(t, ts)
-		url := fmt.Sprintf("http://localhost:9999/api/v2/tasks/%s/runs/%s/logs", taskID, runID)
+		url := fmt.Sprintf("http://localhost:8086/api/v2/tasks/%s/runs/%s/logs", taskID, runID)
 		valCtx := context.WithValue(sessionAllPermsCtx, httprouter.ParamsKey, httprouter.Params{
 			{Key: "id", Value: taskID.String()},
 			{Key: "rid", Value: runID.String()},
@@ -1673,15 +1677,14 @@ func TestTaskHandler_Sessions(t *testing.T) {
 				}
 
 				return &influxdb.Task{
-					ID:              taskID,
-					OrganizationID:  o.ID,
-					AuthorizationID: taskAuth.ID,
+					ID:             taskID,
+					OrganizationID: o.ID,
 				}, nil
 			},
 		}
 
 		h := newHandler(t, ts)
-		url := fmt.Sprintf("http://localhost:9999/api/v2/tasks/%s/runs/%s/retry", taskID, runID)
+		url := fmt.Sprintf("http://localhost:8086/api/v2/tasks/%s/runs/%s/retry", taskID, runID)
 		valCtx := context.WithValue(sessionAllPermsCtx, httprouter.ParamsKey, httprouter.Params{
 			{Key: "id", Value: taskID.String()},
 			{Key: "rid", Value: runID.String()},

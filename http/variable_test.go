@@ -15,7 +15,7 @@ import (
 	platform "github.com/influxdata/influxdb/v2"
 	kithttp "github.com/influxdata/influxdb/v2/kit/transport/http"
 	"github.com/influxdata/influxdb/v2/mock"
-	platformtesting "github.com/influxdata/influxdb/v2/testing"
+	itesting "github.com/influxdata/influxdb/v2/testing"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -58,7 +58,7 @@ func TestVariableService_handleGetVariables(t *testing.T) {
 					FindVariablesF: func(ctx context.Context, filter platform.VariableFilter, opts ...platform.FindOptions) ([]*platform.Variable, error) {
 						return []*platform.Variable{
 							{
-								ID:             platformtesting.MustIDBase16("6162207574726f71"),
+								ID:             itesting.MustIDBase16("6162207574726f71"),
 								OrganizationID: platform.ID(1),
 								Name:           "variable-a",
 								Selected:       []string{"b"},
@@ -72,7 +72,7 @@ func TestVariableService_handleGetVariables(t *testing.T) {
 								},
 							},
 							{
-								ID:             platformtesting.MustIDBase16("61726920617a696f"),
+								ID:             itesting.MustIDBase16("61726920617a696f"),
 								OrganizationID: platform.ID(1),
 								Name:           "variable-b",
 								Selected:       []string{"c"},
@@ -92,7 +92,7 @@ func TestVariableService_handleGetVariables(t *testing.T) {
 					FindResourceLabelsFn: func(ctx context.Context, f platform.LabelMappingFilter) ([]*platform.Label, error) {
 						labels := []*platform.Label{
 							{
-								ID:   platformtesting.MustIDBase16("fc3dc670a4be9b9a"),
+								ID:   itesting.MustIDBase16("fc3dc670a4be9b9a"),
 								Name: "label",
 								Properties: map[string]string{
 									"color": "fff000",
@@ -211,8 +211,8 @@ func TestVariableService_handleGetVariables(t *testing.T) {
 					FindVariablesF: func(ctx context.Context, filter platform.VariableFilter, opts ...platform.FindOptions) ([]*platform.Variable, error) {
 						return []*platform.Variable{
 							{
-								ID:             platformtesting.MustIDBase16("6162207574726f71"),
-								OrganizationID: platformtesting.MustIDBase16("0000000000000001"),
+								ID:             itesting.MustIDBase16("6162207574726f71"),
+								OrganizationID: itesting.MustIDBase16("0000000000000001"),
 								Name:           "variable-a",
 								Selected:       []string{"b"},
 								Arguments: &platform.VariableArguments{
@@ -231,7 +231,7 @@ func TestVariableService_handleGetVariables(t *testing.T) {
 					FindResourceLabelsFn: func(ctx context.Context, f platform.LabelMappingFilter) ([]*platform.Label, error) {
 						labels := []*platform.Label{
 							{
-								ID:   platformtesting.MustIDBase16("fc3dc670a4be9b9a"),
+								ID:   itesting.MustIDBase16("fc3dc670a4be9b9a"),
 								Name: "label",
 								Properties: map[string]string{
 									"color": "fff000",
@@ -362,7 +362,7 @@ func TestVariableService_handleGetVariable(t *testing.T) {
 				&mock.VariableService{
 					FindVariableByIDF: func(ctx context.Context, id platform.ID) (*platform.Variable, error) {
 						return &platform.Variable{
-							ID:             platformtesting.MustIDBase16("75650d0a636f6d70"),
+							ID:             itesting.MustIDBase16("75650d0a636f6d70"),
 							OrganizationID: platform.ID(1),
 							Name:           "variable-a",
 							Selected:       []string{"b"},
@@ -489,7 +489,7 @@ func TestVariableService_handlePostVariable(t *testing.T) {
 			fields: fields{
 				&mock.VariableService{
 					CreateVariableF: func(ctx context.Context, m *platform.Variable) error {
-						m.ID = platformtesting.MustIDBase16("75650d0a636f6d70")
+						m.ID = itesting.MustIDBase16("75650d0a636f6d70")
 						m.OrganizationID = platform.ID(1)
 						m.UpdatedAt = faketime
 						m.CreatedAt = faketime
@@ -529,7 +529,7 @@ func TestVariableService_handlePostVariable(t *testing.T) {
 			fields: fields{
 				&mock.VariableService{
 					CreateVariableF: func(ctx context.Context, m *platform.Variable) error {
-						m.ID = platformtesting.MustIDBase16("0")
+						m.ID = itesting.MustIDBase16("0")
 						return nil
 					},
 				},
@@ -548,7 +548,7 @@ func TestVariableService_handlePostVariable(t *testing.T) {
 			fields: fields{
 				&mock.VariableService{
 					CreateVariableF: func(ctx context.Context, m *platform.Variable) error {
-						m.ID = platformtesting.MustIDBase16("0")
+						m.ID = itesting.MustIDBase16("0")
 						return nil
 					},
 				},
@@ -574,6 +574,109 @@ func TestVariableService_handlePostVariable(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			h.handlePostVariable(w, r)
+
+			res := w.Result()
+			contentType := res.Header.Get("Content-Type")
+			bodyBytes, _ := ioutil.ReadAll(res.Body)
+			body := string(bodyBytes[:])
+
+			if res.StatusCode != tt.wants.statusCode {
+				t.Errorf("got = %v, want %v", res.StatusCode, tt.wants.statusCode)
+			}
+			if contentType != tt.wants.contentType {
+				t.Errorf("got = %v, want %v", contentType, tt.wants.contentType)
+			}
+			if eq, diff, err := jsonEqual(string(body), tt.wants.body); err != nil {
+				t.Errorf("%q, error unmarshaling json %v", tt.name, err)
+			} else if tt.wants.body != "" && !eq {
+				t.Errorf("%q. ***%s***", tt.name, diff)
+			}
+		})
+	}
+}
+
+func TestVariableService_handlePutVariable(t *testing.T) {
+	type fields struct {
+		VariableService platform.VariableService
+	}
+	type args struct {
+		id       string
+		variable string
+	}
+	type wants struct {
+		statusCode  int
+		contentType string
+		body        string
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		wants  wants
+	}{
+		{
+			name: "PUT a variable",
+			fields: fields{
+				&mock.VariableService{
+					ReplaceVariableF: func(ctx context.Context, m *platform.Variable) error {
+						m.ID = itesting.MustIDBase16("75650d0a636f6d70")
+						m.OrganizationID = platform.ID(1)
+						m.UpdatedAt = faketime
+						m.CreatedAt = faketime
+						return nil
+					},
+				},
+			},
+			args: args{
+				id: "75650d0a636f6d70",
+				variable: `
+{
+  "name": "my-great-variable",
+  "orgID": "0000000000000001",
+  "arguments": {
+    "type": "constant",
+    "values": [
+      "bar",
+      "foo"
+    ]
+  },
+  "selected": [
+    "'foo'"
+  ],
+	"createdAt": "2006-05-04T01:02:03Z",
+	"updatedAt": "2006-05-04T01:02:03Z"
+}
+`,
+			},
+			wants: wants{
+				statusCode:  200,
+				contentType: "application/json; charset=utf-8",
+				body: `{"id":"75650d0a636f6d70","orgID":"0000000000000001","name":"my-great-variable","description":"","selected":["'foo'"],"arguments":{"type":"constant","values":["bar","foo"]},"createdAt":"2006-05-04T01:02:03Z","updatedAt":"2006-05-04T01:02:03Z","labels":[],"links":{"self":"/api/v2/variables/75650d0a636f6d70","labels":"/api/v2/variables/75650d0a636f6d70/labels","org":"/api/v2/orgs/0000000000000001"}}
+`,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			variableBackend := NewMockVariableBackend(t)
+			variableBackend.HTTPErrorHandler = kithttp.ErrorHandler(0)
+			variableBackend.VariableService = tt.fields.VariableService
+			h := NewVariableHandler(zaptest.NewLogger(t), variableBackend)
+			r := httptest.NewRequest("GET", "http://howdy.tld", bytes.NewReader([]byte(tt.args.variable)))
+			r = r.WithContext(context.WithValue(
+				context.TODO(),
+				httprouter.ParamsKey,
+				httprouter.Params{
+					{
+						Key:   "id",
+						Value: tt.args.id,
+					},
+				}))
+			w := httptest.NewRecorder()
+
+			h.handlePutVariable(w, r)
 
 			res := w.Result()
 			contentType := res.Header.Get("Content-Type")
@@ -621,7 +724,7 @@ func TestVariableService_handlePatchVariable(t *testing.T) {
 				&mock.VariableService{
 					UpdateVariableF: func(ctx context.Context, id platform.ID, u *platform.VariableUpdate) (*platform.Variable, error) {
 						return &platform.Variable{
-							ID:             platformtesting.MustIDBase16("75650d0a636f6d70"),
+							ID:             itesting.MustIDBase16("75650d0a636f6d70"),
 							OrganizationID: platform.ID(2),
 							Name:           "new-name",
 							Arguments: &platform.VariableArguments{
@@ -863,7 +966,7 @@ func TestService_handlePostVariableLabel(t *testing.T) {
 				t.Fatalf("failed to unmarshal label mapping: %v", err)
 			}
 
-			url := fmt.Sprintf("http://localhost:9999/api/v2/variables/%s/labels", tt.args.variableID)
+			url := fmt.Sprintf("http://localhost:8086/api/v2/variables/%s/labels", tt.args.variableID)
 			r := httptest.NewRequest("POST", url, bytes.NewReader(b))
 			w := httptest.NewRecorder()
 
@@ -888,7 +991,7 @@ func TestService_handlePostVariableLabel(t *testing.T) {
 	}
 }
 
-func initVariableService(f platformtesting.VariableFields, t *testing.T) (platform.VariableService, string, func()) {
+func initVariableService(f itesting.VariableFields, t *testing.T) (platform.VariableService, string, func()) {
 	svc := newInMemKVSVC(t)
 	svc.IDGenerator = f.IDGenerator
 	svc.TimeGenerator = f.TimeGenerator
@@ -915,5 +1018,5 @@ func initVariableService(f platformtesting.VariableFields, t *testing.T) (platfo
 }
 
 func TestVariableService(t *testing.T) {
-	platformtesting.VariableService(initVariableService, t)
+	itesting.VariableService(initVariableService, t, itesting.WithHTTPValidation())
 }

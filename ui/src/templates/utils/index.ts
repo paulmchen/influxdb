@@ -101,6 +101,16 @@ const getTemplateDetailsFromFileSource = (_source: string): TemplateDetails => {
   }
 }
 
+export const getTemplateNameFromUrl = (
+  url: string
+): {name: string; extension: string; directory: string} => {
+  const urlSplit = url.split('/')
+  const fullName = urlSplit.pop()
+  const directory = urlSplit.pop()
+  const [name, extension] = fullName.split('.')
+  return {name, extension, directory}
+}
+
 export const getTemplateDetails = (source: string): TemplateDetails => {
   if (source.includes('https')) {
     return getTemplateDetailsFromGithubSource(source)

@@ -176,7 +176,7 @@ jobs:
             node --version && npm --version
             docker --version
             google-chrome --version && which google-chrome && chromedriver --version && which chromedriver
-            timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:9999)" != "200" ]]; do sleep 5; done' || false
+            timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8086)" != "200" ]]; do sleep 5; done' || false
       - run:
           name: Selenium tests
           command: |
@@ -199,6 +199,17 @@ jobs:
           path: ~/e2e/test-results
       - store_artifacts:
           path: ~/e2e/artifacts
+  grace_nightly:
+    machine: true
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run: docker login -u=$QUAY_USER -p=$QUAY_PASS quay.io
+      - run: docker run --net host -v /var/run/docker.sock:/var/run/docker.sock -e TEST_RESULTS=~/project quay.io/influxdb/grace:latest
+      - store_artifacts:
+          path: ~/project
+      - store_test_results:
+          path: ~/project
   jstest:
     docker:
       - image: circleci/golang:1.13-node-browsers
@@ -509,7 +520,6 @@ workflows:
             branches:
               only:
                 - master
-                - feat/use-algo-w
     jobs:
       - gotest
       - golint
@@ -527,11 +537,13 @@ workflows:
             branches:
               only:
                 - master
-                - feat/use-algo-w
       - litmus_nightly:
           requires:
             - deploy-nightly
       - selenium_accept:
+          requires:
+            - deploy-nightly
+      - grace_nightly:
           requires:
             - deploy-nightly
   release:
@@ -541,31 +553,31 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)\.[0-9]+$/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$/
       - golint:
           filters:
             branches:
               ignore: /.*/
             tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)\.[0-9]+$/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$/
       - lint-feature-flags:
           filters:
             branches:
               ignore: /.*/
             tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)\.[0-9]+$/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$/
       - jstest:
           filters:
             branches:
               ignore: /.*/
             tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)\.[0-9]+$/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$/
       - jslint:
           filters:
             branches:
               ignore: /.*/
             tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)\.[0-9]+$/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$/
       - release:
           requires:
             - gotest
@@ -577,4 +589,4 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)\.[0-9]+$/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$/

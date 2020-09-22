@@ -172,6 +172,7 @@ type CursorConfig struct {
 	Hints     CursorHints
 	Prefix    []byte
 	SkipFirst bool
+	Limit     *int
 }
 
 // NewCursorConfig constructs and configures a CursorConfig used to configure
@@ -223,6 +224,14 @@ func WithCursorSkipFirstItem() CursorOption {
 	}
 }
 
+// WithCursorLimit restricts the number of key values return by the cursor
+// to the provided limit count.
+func WithCursorLimit(limit int) CursorOption {
+	return func(c *CursorConfig) {
+		c.Limit = &limit
+	}
+}
+
 // VisitFunc is called for each k, v byte slice pair from the underlying source bucket
 // which are found in the index bucket for a provided foreign key.
 type VisitFunc func(k, v []byte) error
@@ -240,10 +249,8 @@ func WalkCursor(ctx context.Context, cursor ForwardCursor, visit VisitFunc) (err
 			return err
 		}
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 	}
 

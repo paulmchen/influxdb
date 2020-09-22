@@ -489,7 +489,8 @@ export const reviewTemplate = async (orgID: string, templateUrl: string) => {
 export const installTemplate = async (
   orgID: string,
   templateUrl: string,
-  resourcesToSkip
+  resourcesToSkip: {[key: string]: string},
+  envRefs: {} = {}
 ) => {
   const data: TemplateApply = {
     dryRun: false,
@@ -509,6 +510,10 @@ export const installTemplate = async (
       })
     }
     data.actions = actions
+  }
+
+  if (Object.keys(envRefs).length) {
+    data.envRefs = envRefs
   }
 
   const params = {
@@ -553,4 +558,16 @@ export const updateStackName = async (stackID, name) => {
   }
 
   return resp
+}
+
+export const fetchReadMe = async (directory: string) => {
+  const resp = await fetch(
+    `https://raw.githubusercontent.com/influxdata/community-templates/master/${directory}/readme.md`
+  )
+
+  if (resp.status >= 300) {
+    throw new Error(`Network response was not ok:' ${resp.statusText}`)
+  }
+
+  return resp.text()
 }

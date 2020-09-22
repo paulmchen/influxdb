@@ -114,34 +114,6 @@ func NewLabelPackage() BoolFlag {
 	return newLabels
 }
 
-var hydratevars = MakeBoolFlag(
-	"New Hydrate Vars Functionality",
-	"hydratevars",
-	"Ariel Salem / Monitoring Team",
-	false,
-	Temporary,
-	true,
-)
-
-// NewHydrateVarsFunctionality - Enables a minimalistic variable hydration
-func NewHydrateVarsFunctionality() BoolFlag {
-	return hydratevars
-}
-
-var queryCacheForDashboards = MakeBoolFlag(
-	"Query Cache for Dashboards UI",
-	"queryCacheForDashboards",
-	"Ariel Salem / Monitoring Team",
-	false,
-	Temporary,
-	true,
-)
-
-// QueryCacheForDashboardsUi - Enables a Dashboard Cache on the uI
-func QueryCacheForDashboardsUi() BoolFlag {
-	return queryCacheForDashboards
-}
-
 var memoryOptimizedFill = MakeBoolFlag(
 	"Memory Optimized Fill",
 	"memoryOptimizedFill",
@@ -170,6 +142,20 @@ func MemoryOptimizedSchemaMutation() BoolFlag {
 	return memoryOptimizedSchemaMutation
 }
 
+var queryTracing = MakeBoolFlag(
+	"Query Tracing",
+	"queryTracing",
+	"Query Team",
+	false,
+	Permanent,
+	false,
+)
+
+// QueryTracing - Turn on query tracing for queries that are sampled
+func QueryTracing() BoolFlag {
+	return queryTracing
+}
+
 var simpleTaskOptionsExtraction = MakeBoolFlag(
 	"Simple Task Options Extraction",
 	"simpleTaskOptionsExtraction",
@@ -184,20 +170,6 @@ func SimpleTaskOptionsExtraction() BoolFlag {
 	return simpleTaskOptionsExtraction
 }
 
-var useUserPermission = MakeBoolFlag(
-	"Use User Permission",
-	"useUserPermission",
-	"Lyon Hill",
-	false,
-	Temporary,
-	false,
-)
-
-// UseUserPermission - When enabled we will use the new user service permission function
-func UseUserPermission() BoolFlag {
-	return useUserPermission
-}
-
 var mergeFiltersRule = MakeBoolFlag(
 	"Merged Filters Rule",
 	"mergeFiltersRule",
@@ -210,6 +182,20 @@ var mergeFiltersRule = MakeBoolFlag(
 // MergedFiltersRule - Create one filter combining multiple single return statements
 func MergedFiltersRule() BoolFlag {
 	return mergeFiltersRule
+}
+
+var bandPlotType = MakeBoolFlag(
+	"Band Plot Type",
+	"bandPlotType",
+	"Monitoring Team",
+	false,
+	Temporary,
+	true,
+)
+
+// BandPlotType - Enables the creation of a band plot in Dashboards
+func BandPlotType() BoolFlag {
+	return bandPlotType
 }
 
 var mosaicGraphType = MakeBoolFlag(
@@ -268,6 +254,34 @@ func OrgOnlyMemberList() BoolFlag {
 	return orgOnlyMemberList
 }
 
+var injectLatestSuccessTime = MakeBoolFlag(
+	"Inject Latest Success Time",
+	"injectLatestSuccessTime",
+	"Compute Team",
+	false,
+	Temporary,
+	false,
+)
+
+// InjectLatestSuccessTime - Inject the latest successful task run timestamp into a Task query extern when executing.
+func InjectLatestSuccessTime() BoolFlag {
+	return injectLatestSuccessTime
+}
+
+var enforceOrgDashboardLimits = MakeBoolFlag(
+	"Enforce Organization Dashboard Limits",
+	"enforceOrgDashboardLimits",
+	"Compute Team",
+	false,
+	Temporary,
+	false,
+)
+
+// EnforceOrganizationDashboardLimits - Enforces the default limit params for the dashboards api when orgs are set
+func EnforceOrganizationDashboardLimits() BoolFlag {
+	return enforceOrgDashboardLimits
+}
+
 var all = []Flag{
 	appMetrics,
 	backendExample,
@@ -277,17 +291,18 @@ var all = []Flag{
 	groupWindowAggregateTranspose,
 	newAuth,
 	newLabels,
-	hydratevars,
-	queryCacheForDashboards,
 	memoryOptimizedFill,
 	memoryOptimizedSchemaMutation,
+	queryTracing,
 	simpleTaskOptionsExtraction,
-	useUserPermission,
 	mergeFiltersRule,
+	bandPlotType,
 	mosaicGraphType,
 	notebooks,
 	pushDownGroupAggregateMinMax,
 	orgOnlyMemberList,
+	injectLatestSuccessTime,
+	enforceOrgDashboardLimits,
 }
 
 var byKey = map[string]Flag{
@@ -299,15 +314,16 @@ var byKey = map[string]Flag{
 	"groupWindowAggregateTranspose": groupWindowAggregateTranspose,
 	"newAuth":                       newAuth,
 	"newLabels":                     newLabels,
-	"hydratevars":                   hydratevars,
-	"queryCacheForDashboards":       queryCacheForDashboards,
 	"memoryOptimizedFill":           memoryOptimizedFill,
 	"memoryOptimizedSchemaMutation": memoryOptimizedSchemaMutation,
+	"queryTracing":                  queryTracing,
 	"simpleTaskOptionsExtraction":   simpleTaskOptionsExtraction,
-	"useUserPermission":             useUserPermission,
 	"mergeFiltersRule":              mergeFiltersRule,
+	"bandPlotType":                  bandPlotType,
 	"mosaicGraphType":               mosaicGraphType,
 	"notebooks":                     notebooks,
 	"pushDownGroupAggregateMinMax":  pushDownGroupAggregateMinMax,
 	"orgOnlyMemberList":             orgOnlyMemberList,
+	"injectLatestSuccessTime":       injectLatestSuccessTime,
+	"enforceOrgDashboardLimits":     enforceOrgDashboardLimits,
 }

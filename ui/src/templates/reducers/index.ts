@@ -4,12 +4,14 @@ import {
   ADD_TEMPLATE_SUMMARY,
   POPULATE_TEMPLATE_SUMMARIES,
   REMOVE_TEMPLATE_SUMMARY,
-  SET_COMMUNITY_TEMPLATE_TO_INSTALL,
   SET_EXPORT_TEMPLATE,
-  SET_TEMPLATE_SUMMARY,
-  SET_TEMPLATES_STATUS,
-  TOGGLE_TEMPLATE_RESOURCE_INSTALL,
   SET_STACKS,
+  SET_STAGED_TEMPLATE,
+  SET_STAGED_TEMPLATE_URL,
+  SET_TEMPLATES_STATUS,
+  SET_TEMPLATE_SUMMARY,
+  TOGGLE_TEMPLATE_RESOURCE_INSTALL,
+  UPDATE_TEMPLATE_ENV_REF,
 } from 'src/templates/actions/creators'
 import {
   CommunityTemplate,
@@ -37,6 +39,8 @@ const defaultCommunityTemplate = (): CommunityTemplate => {
 
 export const defaultState = (): TemplatesState => ({
   stagedCommunityTemplate: defaultCommunityTemplate(),
+  stagedTemplateEnvReferences: {},
+  stagedTemplateUrl: '',
   status: RemoteDataState.NotStarted,
   byID: {},
   allIDs: [],
@@ -75,8 +79,17 @@ export const templatesReducer = (
         return
       }
 
-      case SET_COMMUNITY_TEMPLATE_TO_INSTALL: {
+      case SET_STAGED_TEMPLATE_URL: {
+        const {templateUrl} = action
+
+        draftState.stagedTemplateUrl = templateUrl
+        return
+      }
+
+      case SET_STAGED_TEMPLATE: {
         const {template} = action
+
+        const envReferences = {}
 
         const stagedCommunityTemplate = {
           ...defaultCommunityTemplate(),
@@ -89,6 +102,16 @@ export const templatesReducer = (
           if (!dashboard.hasOwnProperty('shouldInstall')) {
             dashboard.shouldInstall = true
           }
+          if (dashboard.envReferences.length) {
+            dashboard.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
+          }
           return dashboard
         })
 
@@ -97,6 +120,16 @@ export const templatesReducer = (
         ).map(telegrafConfig => {
           if (!telegrafConfig.hasOwnProperty('shouldInstall')) {
             telegrafConfig.shouldInstall = true
+          }
+          if (telegrafConfig.envReferences.length) {
+            telegrafConfig.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
           }
           return telegrafConfig
         })
@@ -107,6 +140,16 @@ export const templatesReducer = (
           if (!bucket.hasOwnProperty('shouldInstall')) {
             bucket.shouldInstall = true
           }
+          if (bucket.envReferences.length) {
+            bucket.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
+          }
           return bucket
         })
 
@@ -115,6 +158,16 @@ export const templatesReducer = (
         ).map(check => {
           if (!check.hasOwnProperty('shouldInstall')) {
             check.shouldInstall = true
+          }
+          if (check.envReferences.length) {
+            check.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
           }
           return check
         })
@@ -125,6 +178,16 @@ export const templatesReducer = (
           if (!variable.hasOwnProperty('shouldInstall')) {
             variable.shouldInstall = true
           }
+          if (variable.envReferences.length) {
+            variable.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
+          }
           return variable
         })
 
@@ -133,6 +196,16 @@ export const templatesReducer = (
         ).map(notificationRule => {
           if (!notificationRule.hasOwnProperty('shouldInstall')) {
             notificationRule.shouldInstall = true
+          }
+          if (notificationRule.envReferences.length) {
+            notificationRule.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
           }
           return notificationRule
         })
@@ -143,6 +216,16 @@ export const templatesReducer = (
           if (!notificationEndpoint.hasOwnProperty('shouldInstall')) {
             notificationEndpoint.shouldInstall = true
           }
+          if (notificationEndpoint.envReferences.length) {
+            notificationEndpoint.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
+          }
           return notificationEndpoint
         })
 
@@ -151,6 +234,16 @@ export const templatesReducer = (
         ).map(label => {
           if (!label.hasOwnProperty('shouldInstall')) {
             label.shouldInstall = true
+          }
+          if (label.envReferences.length) {
+            label.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
           }
           return label
         })
@@ -161,9 +254,20 @@ export const templatesReducer = (
           if (!summaryTask.hasOwnProperty('shouldInstall')) {
             summaryTask.shouldInstall = true
           }
+          if (summaryTask.envReferences.length) {
+            summaryTask.envReferences.forEach(ref => {
+              envReferences[ref.envRefKey] = {
+                envRefKey: ref.envRefKey,
+                resourceField: ref.resourceField,
+                value: ref.defaultValue,
+                valueType: ref.valueType,
+              }
+            })
+          }
           return summaryTask
         })
 
+        draftState.stagedTemplateEnvReferences = envReferences
         draftState.stagedCommunityTemplate = stagedCommunityTemplate
         return
       }
@@ -222,6 +326,17 @@ export const templatesReducer = (
         const {stacks} = action
 
         draftState.stacks = stacks
+        return
+      }
+
+      case UPDATE_TEMPLATE_ENV_REF: {
+        const {envRefKey, newValue, resourceField, valueType} = action
+        draftState.stagedTemplateEnvReferences[envRefKey] = {
+          envRefKey,
+          resourceField,
+          value: newValue,
+          valueType,
+        }
         return
       }
     }

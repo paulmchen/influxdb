@@ -1056,6 +1056,8 @@ spec:
 						assert.Equal(t, "heatmap", props.GetType())
 						assert.Equal(t, "heatmap note", props.Note)
 						assert.Equal(t, int32(10), props.BinSize)
+						assert.Equal(t, 1.0, props.LegendOpacity)
+						assert.Equal(t, 5, props.LegendOrientationThreshold)
 						assert.True(t, props.ShowNoteWhenEmpty)
 
 						assert.Equal(t, []float64{0, 10}, props.XDomain)
@@ -1173,6 +1175,8 @@ spec:
 						assert.Equal(t, "histogram", props.GetType())
 						assert.Equal(t, "histogram note", props.Note)
 						assert.Equal(t, 30, props.BinCount)
+						assert.Equal(t, 1.0, props.LegendOpacity)
+						assert.Equal(t, 5, props.LegendOrientationThreshold)
 						assert.True(t, props.ShowNoteWhenEmpty)
 						assert.Equal(t, []float64{0, 10}, props.XDomain)
 						assert.Equal(t, []string{"a", "b"}, props.FillColumns)
@@ -1287,6 +1291,62 @@ spec:
 						assert.Equal(t, "y_prefix", props.YPrefix)
 						assert.Equal(t, "x_suffix", props.XSuffix)
 						assert.Equal(t, "y_suffix", props.YSuffix)
+						assert.Equal(t, 1.0, props.LegendOpacity)
+						assert.Equal(t, 5, props.LegendOrientationThreshold)
+					})
+				})
+			})
+
+			t.Run("band chart", func(t *testing.T) {
+				t.Run("happy path", func(t *testing.T) {
+					testfileRunner(t, "testdata/dashboard_band.yml", func(t *testing.T, template *Template) {
+						sum := template.Summary()
+						require.Len(t, sum.Dashboards, 1)
+
+						actual := sum.Dashboards[0]
+						assert.Equal(t, KindDashboard, actual.Kind)
+						assert.Equal(t, "dash-1", actual.Name)
+						assert.Equal(t, "a dashboard w/ single band chart", actual.Description)
+
+						require.Len(t, actual.Charts, 1)
+						actualChart := actual.Charts[0]
+						assert.Equal(t, 3, actualChart.Height)
+						assert.Equal(t, 6, actualChart.Width)
+						assert.Equal(t, 1, actualChart.XPosition)
+						assert.Equal(t, 2, actualChart.YPosition)
+
+						props, ok := actualChart.Properties.(influxdb.BandViewProperties)
+						require.True(t, ok)
+						assert.Equal(t, "band note", props.Note)
+						assert.True(t, props.ShowNoteWhenEmpty)
+						assert.Equal(t, "y", props.HoverDimension)
+						assert.Equal(t, "foo", props.UpperColumn)
+						assert.Equal(t, "baz", props.MainColumn)
+						assert.Equal(t, "bar", props.LowerColumn)
+						assert.Equal(t, 1.0, props.LegendOpacity)
+						assert.Equal(t, 5, props.LegendOrientationThreshold)
+
+						require.Len(t, props.ViewColors, 1)
+						c := props.ViewColors[0]
+						assert.Equal(t, "laser", c.Name)
+						assert.Equal(t, "scale", c.Type)
+						assert.Equal(t, "#8F8AF4", c.Hex)
+						assert.Equal(t, 3.0, c.Value)
+
+						require.Len(t, props.Queries, 1)
+						q := props.Queries[0]
+						expectedQuery := `from(bucket: v.bucket)  |> range(start: v.timeRangeStart)  |> filter(fn: (r) => r._measurement == "mem")  |> filter(fn: (r) => r._field == "used_percent")  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)  |> yield(name: "mean")`
+						assert.Equal(t, expectedQuery, q.Text)
+						assert.Equal(t, "advanced", q.EditMode)
+
+						for _, key := range []string{"x", "y"} {
+							xAxis, ok := props.Axes[key]
+							require.True(t, ok, "key="+key)
+							assert.Equal(t, key+"_label", xAxis.Label, "key="+key)
+							assert.Equal(t, key+"_prefix", xAxis.Prefix, "key="+key)
+							assert.Equal(t, key+"_suffix", xAxis.Suffix, "key="+key)
+						}
+
 					})
 				})
 			})
@@ -1328,6 +1388,8 @@ spec:
 						assert.Equal(t, "y_prefix", props.YPrefix)
 						assert.Equal(t, "x_suffix", props.XSuffix)
 						assert.Equal(t, "y_suffix", props.YSuffix)
+						assert.Equal(t, 1.0, props.LegendOpacity)
+						assert.Equal(t, 5, props.LegendOrientationThreshold)
 					})
 				})
 
@@ -1766,6 +1828,8 @@ spec:
 						assert.Equal(t, "overlaid", props.Position)
 						assert.Equal(t, "leg_type", props.Legend.Type)
 						assert.Equal(t, "horizontal", props.Legend.Orientation)
+						assert.Equal(t, 1.0, props.LegendOpacity)
+						assert.Equal(t, 5, props.LegendOrientationThreshold)
 
 						require.Len(t, props.Queries, 1)
 						q := props.Queries[0]
@@ -2220,6 +2284,8 @@ spec:
 						assert.Equal(t, "xy chart note", props.Note)
 						assert.True(t, props.ShowNoteWhenEmpty)
 						assert.Equal(t, "stacked", props.Position)
+						assert.Equal(t, 1.0, props.LegendOpacity)
+						assert.Equal(t, 5, props.LegendOrientationThreshold)
 
 						require.Len(t, props.Queries, 1)
 						q := props.Queries[0]
@@ -2352,6 +2418,7 @@ spec:
 
 				require.Len(t, props.Queries, 1)
 
+				// parmas
 				queryText := `option params = {
 	bucket: "bar",
 	start: -24h0m0s,
@@ -3413,6 +3480,121 @@ from(bucket: params.bucket)
 					},
 				}
 				assert.Equal(t, expectedRefs, actual.EnvReferences)
+			})
+		})
+
+		t.Run("with task option should be valid", func(t *testing.T) {
+			testfileRunner(t, "testdata/task_v2.yml", func(t *testing.T, template *Template) {
+				actual := template.Summary().Tasks
+				require.Len(t, actual, 1)
+
+				expectedEnvRefs := []SummaryReference{
+					{
+						Field:        "spec.task.every",
+						EnvRefKey:    "tasks[task-1].spec.task.every",
+						ValType:      "duration",
+						DefaultValue: time.Minute,
+					},
+					{
+						Field:        "spec.name",
+						EnvRefKey:    "tasks[task-1].spec.task.name",
+						ValType:      "string",
+						DefaultValue: "bar",
+					},
+					{
+						Field:        "spec.task.name",
+						EnvRefKey:    "tasks[task-1].spec.task.name",
+						ValType:      "string",
+						DefaultValue: "bar",
+					},
+					{
+						Field:        "spec.task.offset",
+						EnvRefKey:    "tasks[task-1].spec.task.offset",
+						ValType:      "duration",
+						DefaultValue: time.Minute * 3,
+					},
+				}
+				assert.Equal(t, expectedEnvRefs, actual[0].EnvReferences)
+			})
+		})
+
+		t.Run("with task spec should be valid", func(t *testing.T) {
+			testfileRunner(t, "testdata/task_v2_taskSpec.yml", func(t *testing.T, template *Template) {
+				actual := template.Summary().Tasks
+				require.Len(t, actual, 1)
+
+				expectedEnvRefs := []SummaryReference{
+					{
+						Field:        "spec.task.every",
+						EnvRefKey:    "tasks[task-1].spec.task.every",
+						ValType:      "duration",
+						DefaultValue: time.Minute,
+					},
+					{
+						Field:        "spec.name",
+						EnvRefKey:    "tasks[task-1].spec.task.name",
+						ValType:      "string",
+						DefaultValue: "foo",
+					},
+					{
+						Field:        "spec.task.name",
+						EnvRefKey:    "tasks[task-1].spec.task.name",
+						ValType:      "string",
+						DefaultValue: "foo",
+					},
+					{
+						Field:        "spec.task.offset",
+						EnvRefKey:    "tasks[task-1].spec.task.offset",
+						ValType:      "duration",
+						DefaultValue: time.Minute,
+					},
+				}
+
+				queryText := `option task = {name: "foo", every: 1m0s, offset: 1m0s}
+
+from(bucket: "rucket_1")
+	|> range(start: -5d, stop: -1h)
+	|> filter(fn: (r) =>
+		(r._measurement == "cpu"))
+	|> filter(fn: (r) =>
+		(r._field == "usage_idle"))
+	|> aggregateWindow(every: 1m, fn: mean)
+	|> yield(name: "mean")`
+
+				assert.Equal(t, queryText, actual[0].Query)
+
+				assert.Equal(t, expectedEnvRefs, actual[0].EnvReferences)
+			})
+		})
+
+		t.Run("with params option should be valid", func(t *testing.T) {
+			testfileRunner(t, "testdata/task_v2_params.yml", func(t *testing.T, template *Template) {
+				actual := template.Summary().Tasks
+				require.Len(t, actual, 1)
+
+				expectedEnvRefs := []SummaryReference{
+					{
+						Field:        "spec.params.this",
+						EnvRefKey:    "tasks[task-1].spec.params.this",
+						ValType:      "string",
+						DefaultValue: "foo",
+					},
+				}
+
+				queryText := `option params = {this: "foo"}
+
+from(bucket: "rucket_1")
+	|> range(start: -5d, stop: -1h)
+	|> filter(fn: (r) =>
+		(r._measurement == params.this))
+	|> filter(fn: (r) =>
+		(r._field == "usage_idle"))
+	|> aggregateWindow(every: 1m, fn: mean)
+	|> yield(name: "mean")`
+
+				assert.Equal(t, queryText, actual[0].Query)
+
+				assert.Equal(t, expectedEnvRefs, actual[0].EnvReferences)
 			})
 		})
 
@@ -4611,7 +4793,7 @@ func newParsedTemplate(t *testing.T, fn ReaderFn, encoding Encoding, opts ...Val
 	require.NoError(t, err)
 
 	for _, k := range template.Objects {
-		require.Equal(t, APIVersion, k.APIVersion)
+		require.Contains(t, k.APIVersion, "influxdata.com/v2alpha")
 	}
 
 	require.True(t, template.isParsed)
